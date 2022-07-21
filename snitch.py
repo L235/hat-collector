@@ -357,7 +357,7 @@ class ReportBot(BotClient):
                                 f"Currently in the following channels: {str(list(self.channels.keys()))}")
         elif split_message[0] == 'announce':
             if await self.is_authorized(sender, 0):
-                announcement = message[10:]
+                announcement = ' '.join(split_message[1:])
                 for channel in self.channels.keys():
                     await self.message(channel, announcement)
                 
