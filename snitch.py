@@ -360,6 +360,11 @@ class ReportBot(BotClient):
                 announcement = ' '.join(split_message[1:])
                 for channel in self.channels.keys():
                     await self.message(channel, announcement)
+        elif split_message[0] == 'message':
+            if await self.is_authorized(sender, 0):
+                channel = split_message[1]
+                announcement = ' '.join(split_message[2:])
+                await self.message(channel, announcement)
                 
 
     async def on_message(self, target: str, by: str, message: str) -> None:
