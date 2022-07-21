@@ -279,13 +279,13 @@ class ReportBot(BotClient):
         if not message.startswith('!'):
             return
         
-        if settings.debug_mode:
-            await self.message(settings.home_channel, message)
-        
         is_channel_message = self.is_channel(message_target)
         conversation = message_target if is_channel_message else sender
         split_message = message[1:].split(' ')
         auth_level = await self.get_auth_level(sender)
+        
+        if settings.debug_mode:
+            await self.message(settings.home_channel, f"BOT: {sender} used command {message} in {conversation}")
 
         # Begin command matching
         if split_message[0] in ('authlevel', 'authorizationlevel'):
