@@ -333,7 +333,7 @@ class ReportBot(BotClient):
                                {'channel': split_message[1]})
                     await self.join(split_message[1])
                     await self.message(settings.home_channel, 
-                                f"BOT: Joining channel {split_message[1]} as requested by {sender}")
+                                f"BOT: Joining channel {split_message[1]} as requested by {sender} in {conversation}")
         elif split_message[0] in ('part', 'leave'):
             if await self.is_authorized(sender, 0):
                 if not len(split_message) > 1:
@@ -343,7 +343,7 @@ class ReportBot(BotClient):
                                {'channel': split_message[1]})
                     await self.part(split_message[1])
                     await self.message(settings.home_channel, 
-                                f"BOT: Parting channel {split_message[1]} as requested by {sender}")
+                                f"BOT: Parting channel {split_message[1]} as requested by {sender} in {conversation}")
         elif split_message[0] == 'help':
             await self.message(message_target,
                                '!(relay|drop|ignore|unignore|list|listflood|join|part|quit)')
