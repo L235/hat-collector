@@ -278,6 +278,10 @@ class ReportBot(BotClient):
         """
         if not message.startswith('!'):
             return
+
+        if settings.debug_mode:
+            self.message(settings.home_channel, message)
+        
         is_channel_message = self.is_channel(message_target)
         conversation = message_target if is_channel_message else sender
         split_message = message[1:].split(' ')
