@@ -278,7 +278,7 @@ class ReportBot(BotClient):
         """
         if not message.startswith('!'):
             return
-
+        
         if settings.debug_mode:
             self.message(settings.home_channel, message)
         
