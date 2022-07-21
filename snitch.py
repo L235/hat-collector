@@ -341,7 +341,7 @@ class ReportBot(BotClient):
                                '!(relay|drop|ignore|unignore|list|listflood|join|part|quit)')
         elif split_message[0] == 'quit':
             if await self.is_authorized(sender, 0):
-                await self.quit()
+                await self.quit(message=message[6:])
                 self.eventloop.stop()
 
     async def on_message(self, target: str, by: str, message: str) -> None:
