@@ -5,11 +5,15 @@ on:
     branches: [ "master", "dev" ]
     paths:
       - '**.py'
+      - '**.py.sample'
+      - '.github/workflows/pylint.yml'
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ "master" ]
     paths:
       - '**.py'
+      - '**.py.sample'
+      - '.github/workflows/pylint.yml'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,6 +32,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install pylint
           pip install -r requirements.txt
+      - name: Rename Settings.py.sample
+        run: |
+          git mv settings.py.sample settings.py
       - name: Analysing the code with pylint
         run: |
-          pylint --enable=useless-suppression $(git ls-files '*.py')
+          pylint --disable=logging-fstring-interpolation --enable=useless-suppression $(git ls-files '*.py')

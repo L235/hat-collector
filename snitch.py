@@ -1,5 +1,7 @@
 #! /usr/bin/env python3.9
 # GPL-2.0; bjweeks, MZMcBride; 2011; Rschen7754, 2013; L235, PhantomTech 2022
+""" Notifies IRC channels of events matching defined rules on Wikipedia and related projects
+"""
 import asyncio
 import collections
 import json
@@ -27,8 +29,8 @@ CHANNEL_URLS: Dict[str, str] = {
     'wikimania2014wiki': 'wikimania2014.wikimedia',
     'wikimediafoundation.org': 'wikimediafoundation',
 }
-AUTHORIZED_RE = re.compile(fr'{"|".join(settings.authorized_users)}')
-TRUSTED_RE = re.compile(fr'{"|".join(settings.trusted_users)}')
+AUTHORIZED_RE = re.compile(fr'{"|".join(settings.AUTHORIZED_USERS)}')
+TRUSTED_RE = re.compile(fr'{"|".join(settings.TRUSTED_USERS)}')
 
 Rule = collections.namedtuple('Rule', 'wiki, type, pattern, channel, ignore')
 
@@ -41,10 +43,12 @@ BotClient = pydle.featurize(
 
 
 class ReportBot(BotClient):
+    """ IRC bot for relaying events matching defined rules on Wikipedia and related projects
+    """
     rule_list = []
     next_message = 0
 
-    def __init__(self, nickname, sqlite_connection: sqlite3.Connection = None, *args, **kwargs):
+    def __init__(self, nickname, *args, sqlite_connection: sqlite3.Connection = None, **kwargs):
         super().__init__(nickname, *args, **kwargs)
         self.sqlite_connection: sqlite3.Connection = sqlite_connection
 
@@ -56,7 +60,7 @@ class ReportBot(BotClient):
         :return: results of the query
         """
         if not params:
-            params = dict()
+            params = {}
         if not self.sqlite_connection:
             logging.error('SQLite query attempt without assigned connection')
         logging.info(f'Running query: {query}')
@@ -70,7 +74,9 @@ class ReportBot(BotClient):
         logging.info('Syncing report channels')
         query = 'SELECT name FROM channels'
         channels = set(f'{row[0]}' for row in self.query(query))
+        # pylint: disable-next=expression-not-assigned
         [await self.join(channel) for channel in (channels - self.channels.keys())]
+        # pylint: disable-next=expression-not-assigned
         [await self.part(channel) for channel in (self.channels.keys() - channels)]
 
     def sync_rules(self) -> None:
@@ -126,9 +132,10 @@ class ReportBot(BotClient):
         :param remove: if the rule should be removed instead of added
         :return: a message intended for the user
         """
+        # pylint: disable=too-many-return-statements
         if not self.is_channel(channel):
             return f'Command {command[0]} must be executed from within a channel'
-        elif len(command) < 3:
+        if len(command) < 3:
             return f'!{command[0]} wiki (page|user|summary|log|logsummary|all) [pattern]'
         wiki = command[1]
         rule_type = command[2]
@@ -163,18 +170,15 @@ class ReportBot(BotClient):
                      'ignore': ignore})
                 self.sync_rules()
                 return 'Rule deleted'
-            else:
-                return 'No such rule'
-        else:
-            if exists:
-                return 'Rule already exists'
-            else:
-                self.query(
-                    'INSERT OR REPLACE INTO rules VALUES (:wiki,:type,:pattern,:channel,:ignore)',
-                    {'wiki': wiki, 'type': rule_type, 'pattern': pattern, 'channel': channel,
-                     'ignore': ignore})
-                self.sync_rules()
-                return 'Rule added'
+            return 'No such rule'
+        if exists:
+            return 'Rule already exists'
+        self.query(
+            'INSERT OR REPLACE INTO rules VALUES (:wiki,:type,:pattern,:channel,:ignore)',
+            {'wiki': wiki, 'type': rule_type, 'pattern': pattern, 'channel': channel,
+             'ignore': ignore})
+        self.sync_rules()
+        return 'Rule added'
 
     async def relay_message(self, channel: str, wiki: str, diff: Dict[str, str]) -> None:
         """ Send a message for diff pre-matched to rule
@@ -183,7 +187,7 @@ class ReportBot(BotClient):
         :param wiki: wiki diff is from
         :param diff: diff that matched the rule
         """
-
+        # pylint: disable-next=import-outside-toplevel
         from pydle.features.rfc1459 import protocol
         # The 150 below in protocol.MESSAGE_LENGTH_LIMIT - 150 is arbitrary,
         # several additions to the message are made and counted for length
@@ -264,6 +268,7 @@ class ReportBot(BotClient):
                             'ORDER BY wiki, ignore DESC, type',
                             {'channel': for_channel})]
         await self.message(message_target, f'Rules for {for_channel}')
+        # pylint: disable-next=expression-not-assigned
         [await self.message(message_target,
                             f'{r.wiki} {"IGNORE " if r.ignore else ""}{r.type} {r.pattern}')
          for r in rules]
@@ -278,7 +283,7 @@ class ReportBot(BotClient):
         :param sender: nick that sent the message
         :param message: the message
         """
-        # pylint: disable=too-many-branches
+        # pylint: disable=too-many-branches,too-many-statements
         if not message.startswith('!'):
             return
 
@@ -287,8 +292,8 @@ class ReportBot(BotClient):
         split_message = message[1:].split(' ')
         auth_level = await self.get_auth_level(sender)
 
-        if settings.debug_mode:
-            await self.message(settings.home_channel, f"BOT: {sender} ({auth_level}) "
+        if settings.DEBUG_MODE:
+            await self.message(settings.HOME_CHANNEL, f"BOT: {sender} ({auth_level}) "
                                                       f"sent command {message} in {conversation}")
 
         # Begin command matching
@@ -300,15 +305,18 @@ class ReportBot(BotClient):
                 try:
                     result = await self.whois(split_message[1])
                 except AttributeError:
-                    pass
-                    '''try:
+                    # pylint: disable-next=pointless-string-statement
+                    '''
+                    try:
                         result = await self.whowas(split_message[1])
                     except AttributeError:
-                        result = None'''
+                        result = None
+                    '''
                 if not result:
                     await self.message(conversation, 'User not found')
                     return
                 response = ''
+                # pylint: disable-next=invalid-name
                 for k, v in result.items():
                     response += f'{k}: {v}\n'
                 response.strip('\n')
@@ -340,7 +348,7 @@ class ReportBot(BotClient):
                     self.query('INSERT OR IGNORE INTO channels VALUES (:channel)',
                                {'channel': split_message[1]})
                     await self.join(split_message[1])
-                    await self.message(settings.home_channel,
+                    await self.message(settings.HOME_CHANNEL,
                                        f"BOT: Joining channel {split_message[1]} "
                                        f"as requested by {sender} in {conversation}")
         elif split_message[0] in ('part', 'leave'):
@@ -351,7 +359,7 @@ class ReportBot(BotClient):
                     self.query('DELETE FROM channels WHERE name=:channel',
                                {'channel': split_message[1]})
                     await self.part(split_message[1])
-                    await self.message(settings.home_channel,
+                    await self.message(settings.HOME_CHANNEL,
                                        f"BOT: Parting channel {split_message[1]} "
                                        f"as requested by {sender} in {conversation}")
         elif split_message[0] == 'help':
@@ -377,6 +385,7 @@ class ReportBot(BotClient):
                 announcement = ' '.join(split_message[2:])
                 await self.message(channel, announcement)
 
+    # pylint: disable-next=invalid-name
     async def on_message(self, target: str, by: str, message: str) -> None:
         """ Called when the bot sees a message
 
@@ -505,6 +514,7 @@ class ReportBot(BotClient):
     async def monitor_event_stream(self) -> None:
         """ Gets and relays events to the bot
         """
+        # pylint: disable-next=import-outside-toplevel
         from aiohttp import ClientPayloadError
         last_id = None
         while True:
@@ -520,6 +530,7 @@ class ReportBot(BotClient):
                         await self.handle_event_stream(event_data)
                     else:
                         logging.error(f'Unexpected schema from stream {event_data["$schema"]}')
+            # pylint: disable-next=invalid-name
             except ClientPayloadError as e:
                 logging.error(f'A developer has lazily worked around an error: {str(e)}')
 
@@ -530,7 +541,7 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     logging.info('Connecting to DB')
-    with sqlite3.connect(settings.database) as sqlite_con:
+    with sqlite3.connect(settings.DATABASE) as sqlite_con:
         sqlite_tables = \
             set(r[0] for r
                 in sqlite_con.execute('SELECT DISTINCT tbl_name FROM sqlite_master;').fetchall())
@@ -551,23 +562,24 @@ def main():
 
         logging.info('Preparing bot')
         loop = asyncio.get_event_loop()
-        bot = ReportBot(settings.nickname,
-                        fallback_nicknames=settings.fallback_nicknames,
-                        realname=settings.realname,
-                        sasl_username=settings.report_sasl_username,
-                        sasl_password=settings.report_sasl_password,
+        bot = ReportBot(settings.NICKNAME,
                         sqlite_connection=sqlite_con,
+                        fallback_nicknames=settings.FALLBACK_NICKNAMES,
+                        realname=settings.REALNAME,
+                        sasl_username=settings.REPORT_SASL_USERNAME,
+                        sasl_password=settings.REPORT_SASL_PASSWORD,
                         eventloop=loop)
         bot = asyncio.gather(
-            bot.connect(hostname=settings.report_network,
-                        port=settings.report_port,
-                        tls=settings.report_tls,
-                        tls_verify=settings.report_verify_tls),
+            bot.connect(hostname=settings.REPORT_NETWORK,
+                        port=settings.REPORT_PORT,
+                        tls=settings.REPORT_TLS,
+                        tls_verify=settings.REPORT_VERIFY_TLS),
             bot.monitor_event_stream(),
             return_exceptions=True)
         logging.info('Running bot')
         try:
             loop.run_until_complete(bot)
+        # pylint: disable-next=invalid-name
         except RuntimeError as e:  # This is probably the wrong way to make !quit stop the process
             if str(e) == 'Event loop stopped before Future completed.':
                 pass
