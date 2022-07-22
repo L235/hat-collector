@@ -27,6 +27,8 @@ CHANNEL_URLS: Dict[str, str] = {
     'wikimania2014wiki': 'wikimania2014.wikimedia',
     'wikimediafoundation.org': 'wikimediafoundation',
 }
+AUTHORIZED_RE = re.compile(fr'{"|".join(settings.authorized_users)}')
+TRUSTED_RE = re.compile(fr'{"|".join(settings.trusted_users)}')
 
 Rule = collections.namedtuple('Rule', 'wiki, type, pattern, channel, ignore')
 
@@ -93,12 +95,12 @@ class ReportBot(BotClient):
         correspond to decreasing authorization levels. -1 for no match.
         """
         auth_level = -1
-        authorized_re = f'(?:{ "|".join(settings.authorized_users)})'
-        trusted_re = f'(?:{ "|".join(settings.trusted_users)})'
         info = await self.whois(source)
-        if info['identified'] and re.fullmatch(authorized_re, info['hostname']):
+        if not info['identified']:
+            pass
+        elif AUTHORIZED_RE.fullmatch(info['hostname']):
             auth_level = 0
-        elif info['identified'] and re.fullmatch(trusted_re, info['hostname']):
+        elif TRUSTED_RE.fullmatch(info['hostname']):
             auth_level = 1
         return auth_level
 
@@ -276,16 +278,18 @@ class ReportBot(BotClient):
         :param sender: nick that sent the message
         :param message: the message
         """
+        # pylint: disable=too-many-branches
         if not message.startswith('!'):
             return
-        
+
         is_channel_message = self.is_channel(message_target)
         conversation = message_target if is_channel_message else sender
         split_message = message[1:].split(' ')
         auth_level = await self.get_auth_level(sender)
-        
+
         if settings.debug_mode:
-            await self.message(settings.home_channel, f"BOT: {sender} used command {message} in {conversation}")
+            await self.message(settings.home_channel, f"BOT: {sender} ({auth_level}) "
+                                                      f"sent command {message} in {conversation}")
 
         # Begin command matching
         if split_message[0] in ('authlevel', 'authorizationlevel'):
@@ -336,8 +340,9 @@ class ReportBot(BotClient):
                     self.query('INSERT OR IGNORE INTO channels VALUES (:channel)',
                                {'channel': split_message[1]})
                     await self.join(split_message[1])
-                    await self.message(settings.home_channel, 
-                                f"BOT: Joining channel {split_message[1]} as requested by {sender} in {conversation}")
+                    await self.message(settings.home_channel,
+                                       f"BOT: Joining channel {split_message[1]} "
+                                       f"as requested by {sender} in {conversation}")
         elif split_message[0] in ('part', 'leave'):
             if await self.is_authorized(sender, 0):
                 if not len(split_message) > 1:
@@ -346,8 +351,9 @@ class ReportBot(BotClient):
                     self.query('DELETE FROM channels WHERE name=:channel',
                                {'channel': split_message[1]})
                     await self.part(split_message[1])
-                    await self.message(settings.home_channel, 
-                                f"BOT: Parting channel {split_message[1]} as requested by {sender} in {conversation}")
+                    await self.message(settings.home_channel,
+                                       f"BOT: Parting channel {split_message[1]} "
+                                       f"as requested by {sender} in {conversation}")
         elif split_message[0] == 'help':
             await self.message(message_target,
                                '!(relay|drop|ignore|unignore|list|listflood|join|part|quit)')
@@ -357,8 +363,9 @@ class ReportBot(BotClient):
                 self.eventloop.stop()
         elif split_message[0] == 'listchans':
             if await self.is_authorized(sender, 0):
-                await self.message(conversation, 
-                                f"Currently in the following channels: {str(list(self.channels.keys()))}")
+                await self.message(conversation,
+                                   f"Currently in the following channels: "
+                                   f"{str(list(self.channels.keys()))}")
         elif split_message[0] == 'announce':
             if await self.is_authorized(sender, 0):
                 announcement = ' '.join(split_message[1:])
@@ -369,7 +376,6 @@ class ReportBot(BotClient):
                 channel = split_message[1]
                 announcement = ' '.join(split_message[2:])
                 await self.message(channel, announcement)
-                
 
     async def on_message(self, target: str, by: str, message: str) -> None:
         """ Called when the bot sees a message
@@ -391,6 +397,7 @@ class ReportBot(BotClient):
 
         :param data: data fom the event stream
         """
+        # pylint: disable=too-many-branches
         if data['$schema'] != '/mediawiki/recentchange/1.0.0':
             logging.error('Unhandled schema')
 
@@ -472,6 +479,7 @@ class ReportBot(BotClient):
     async def message(self, target, message):
         """ Message channel or user.
         """
+        # pylint: disable-next=fixme
         # TODO: Implement better rate control (by waiting until pydle does)
         wait_time = self.next_message - time.time_ns()
         if wait_time > 0:
@@ -485,6 +493,7 @@ class ReportBot(BotClient):
         await super().on_data_error(exception)
         # Proper anti-flooding measures are required however this may
         # need to be done in pydle
+        # pylint: disable-next=fixme
         # TODO: Implement better rate control (by waiting until pydle does)
         if 'Excess Flood' in str(exception):
             logging.error(f'Handling flood disconnection: {exception}')
@@ -516,6 +525,8 @@ class ReportBot(BotClient):
 
 
 def main():
+    """ Setup DB if needed then start bot
+    """
     logging.basicConfig(level=logging.INFO)
 
     logging.info('Connecting to DB')
