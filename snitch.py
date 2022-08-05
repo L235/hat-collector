@@ -144,12 +144,12 @@ class ReportBot(BotClient):
         if not self.is_channel(channel):
             return f'Command {command[0]} must be executed from within a channel'
         if len(command) < 3:
-            return f'!{command[0]} wiki (page|user|summary|log|logsummary|all) [pattern]'
+            return f'!{command[0]} wiki (page|user|summary|log|logsummary|newusers|all) [pattern]'
         wiki = command[1]
         rule_type = command[2]
 
-        if rule_type not in ('summary', 'user', 'page', 'log', 'logsummary', 'all'):
-            return 'Type must be one of: all, user, summary, page, log, logsummary'
+        if rule_type not in ('summary', 'user', 'page', 'log', 'logsummary', 'newusers', 'all'):
+            return 'Type must be one of: all, user, summary, page, log, logsummary, newusers'
 
         if rule_type == 'all':
             pattern = ''
@@ -414,13 +414,13 @@ class ReportBot(BotClient):
 
         :param data: data fom the event stream
         """
-        # pylint: disable=too-many-branches
+        # pylint: disable=too-many-branches,too-many-statements
         if data['$schema'] != '/mediawiki/recentchange/1.0.0':
             logging.error('Unhandled schema')
 
         wiki = '.'.join(data['server_name'].split('.')[:-1])
         if data['type'] not in ('edit', 'new', 'log'):
-            if data['type'] not in ('categorize',):
+            if data['type'] not in ('categorize', '142'): # '142' is for Flow edits
                 logging.info(f'Unknown type {data["type"]}')
             return
         diff = {
@@ -436,6 +436,9 @@ class ReportBot(BotClient):
                             if data['log_action_comment'] != 'reviewed'
                             else 'pagetriage-curation')
             })
+            if data['log_type'] == 'newusers':
+                # I'm pretty sure you can't have more than one : but I might be wrong
+                diff['newuser'] = ''.join(data['title'].split(':')[1:])
         else:
             diff.update({
                 'page': data['title'],
@@ -471,6 +474,12 @@ class ReportBot(BotClient):
                         continue
                 else:
                     # if not pattern.search(diff['summary']): Justification unknown
+                    continue
+            elif rule.type == 'newusers':
+                if 'newuser' in diff:
+                    if not pattern.search(diff['newuser']):
+                        continue
+                else:
                     continue
             elif rule.type == 'log':
                 if 'log' in diff:
