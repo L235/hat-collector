@@ -30,11 +30,6 @@ WIKI_ALIAS: Dict[str, str] = {
     'wikimania2014wiki': 'wikimania2014.wikimedia',
     'wikimediafoundation.org': 'foundation.wikimedia',
 }
-# Wiki aliases for compatibility
-WIKI_ALIAS: Dict[str, str] = {
-    'wikidata.wikipedia': 'www.wikidata',
-    'testwikidata.wikipedia': 'test.wikidata',
-}
 AUTHORIZED_RE = re.compile(fr'{"|".join(settings.AUTHORIZED_USERS)}')
 TRUSTED_RE = re.compile(fr'{"|".join(settings.TRUSTED_USERS)}')
 
