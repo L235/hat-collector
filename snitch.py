@@ -10,8 +10,7 @@ import re
 import sqlite3
 import sre_constants
 import time
-from typing import Dict, Tuple, List
-from urllib.parse import urlparse
+from typing import Dict, Tuple, List, Set
 
 from aiosseclient import aiosseclient
 import pydle
@@ -19,14 +18,17 @@ import pydle
 import settings
 
 ABUSE_LOG_REGEX = re.compile(r'\(\[\[Special:AbuseLog/(\d+)\|details]]\)')
-CHANNEL_URLS: Dict[str, str] = {
+# Wiki aliases for compatibility
+WIKI_ALIAS: Dict[str, str] = {
+    'wikidata.wikipedia': 'www.wikidata',
+    'testwikidata.wikipedia': 'test.wikidata',
     'mediawiki.wikipedia': 'www.mediawiki',
     'species.wikipedia': 'species.wikimedia',
     'donate.wikimedia.org': 'donate.wikimedia',
     'outreach.wikipedia': 'outreach.wikimedia',
     'wikimania2013wiki': 'wikimania2013.wikimedia',
     'wikimania2014wiki': 'wikimania2014.wikimedia',
-    'wikimediafoundation.org': 'wikimediafoundation',
+    'wikimediafoundation.org': 'foundation.wikimedia',
 }
 # Wiki aliases for compatibility
 WIKI_ALIAS: Dict[str, str] = {
@@ -49,9 +51,9 @@ BotClient = pydle.featurize(
 class ReportBot(BotClient):
     """ IRC bot for relaying events matching defined rules on Wikipedia and related projects
     """
-    rule_list = []
-    channel_list = []  # Bot's list of channels from the database
-    next_message = 0
+    rule_list: List[Rule] = []
+    channel_list: Set[str] = set()  # Bot's list of channels from the database
+    next_message: float = 0
 
     def __init__(self, nickname, *args, sqlite_connection: sqlite3.Connection = None, **kwargs):
         super().__init__(nickname, *args, **kwargs)
@@ -246,15 +248,10 @@ class ReportBot(BotClient):
         if 'page' in diff:
             if not diff['summary']:
                 diff['summary'] = '[no summary]'
-            url = urlparse(diff['url'])
-            fixed_netloc = CHANNEL_URLS.get(url.netloc.strip('.org'),
-                                            url.netloc.strip('.org')) + '.org'
-            fixed_url = diff['url'].replace(url.netloc, fixed_netloc)
-            final_url = fixed_url.replace('http://', 'https://')
+            final_url = diff['url'].replace('http://', 'https://')
             await self.message(channel, build_message())
         else:
-            base_url = CHANNEL_URLS.get(wiki.strip('.org'),
-                                        wiki.strip('.org'))
+            base_url = wiki.strip('.org')
             if diff['log'] == 'abusefilter':
                 filter_log = ABUSE_LOG_REGEX.findall(diff['summary'])
                 if len(filter_log) > 0:
@@ -358,9 +355,6 @@ class ReportBot(BotClient):
                     self.query('INSERT OR IGNORE INTO channels VALUES (:channel)',
                                {'channel': split_message[1]})
                     await self.sync_channels()
-                    await self.message(settings.HOME_CHANNEL,
-                                       f"BOT: Joining channel {split_message[1]} "
-                                       f"as requested by {sender} in {conversation}")
         elif split_message[0] in ('part', 'leave'):
             if await self.is_authorized(sender, 0):
                 if not len(split_message) > 1:
@@ -369,9 +363,6 @@ class ReportBot(BotClient):
                     self.query('DELETE FROM channels WHERE name=:channel',
                                {'channel': split_message[1]})
                     await self.sync_channels()
-                    await self.message(settings.HOME_CHANNEL,
-                                       f"BOT: Parting channel {split_message[1]} "
-                                       f"as requested by {sender} in {conversation}")
         elif split_message[0] == 'help':
             await self.message(message_target,
                                '!(relay|drop|ignore|unignore|list|listflood|join|part|quit)')
@@ -458,7 +449,7 @@ class ReportBot(BotClient):
         for rule in rule_list:
             if rule.wiki not in (wiki, 'global'):
                 continue
-            if rule.channel in ignore:
+            if rule.channel in ignore or rule.channel not in self.channel_list:
                 continue
             # Check if rule should be applied
             pattern = re.compile(fr'^{rule.pattern}$', re.I | re.U)
