@@ -390,7 +390,7 @@ class ReportBot(BotClient):
         elif split_message[0] == 'env':
             if await self.is_authorized(sender, 0):
                 key = ' '.join(split_message[1:])
-                await self.message(conversation, 
+                await self.message(conversation,
                                    os.getenv(key, default='[none]'))
 
     # pylint: disable-next=invalid-name
@@ -558,7 +558,7 @@ def main():
         format='%(asctime)s %(levelname)-8s %(message)s',
         level=logging.INFO,
         datefmt='%Y-%m-%d %H:%M:%S')
-    
+
     logging.info('Connecting to DB')
     with sqlite3.connect(settings.DATABASE) as sqlite_con:
         sqlite_tables = \
