@@ -387,7 +387,7 @@ class ReportBot(BotClient):
                 channel = split_message[1]
                 announcement = ' '.join(split_message[2:])
                 await self.message(channel, announcement)
-        elif split_message[0] == 'env':
+        elif split_message[0] == 'getenv':
             if await self.is_authorized(sender, 0):
                 key = ' '.join(split_message[1:])
                 await self.message(conversation,
