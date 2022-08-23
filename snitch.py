@@ -349,9 +349,15 @@ class ReportBot(BotClient):
                                await self.update_rules(message_target, split_message,
                                                        ignore=True, remove=True))
         elif split_message[0] in ('list', 'ls'):
-            await self.list_rules(sender, message_target)
+            if await self.is_authorized(sender, 0) and len(split_message) > 1:
+                await self.list_rules(sender, split_message[1])
+            else:
+                await self.list_rules(sender, message_target)
         elif split_message[0] in ('listflood', 'listhere', 'lsflood', 'lshere'):
-            await self.list_rules(message_target, message_target)
+            if await self.is_authorized(sender, 0) and len(split_message) > 1:
+                await self.list_rules(message_target, split_message[1])
+            else:
+                await self.list_rules(message_target, message_target)
         elif split_message[0] == 'join':
             if await self.is_authorized(sender, 1):
                 if not len(split_message) > 1:
