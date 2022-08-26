@@ -403,6 +403,10 @@ class ReportBot(BotClient):
                 await self.message(conversation,
                                    os.getenv(key, default='[none]'))
 
+    async def on_notice(self, target: str, source: str, message: str) -> None:
+        await super.on_notice(target, source, message)
+        logging.info(f'[N] {source} -> {target}: {message}')
+
     # pylint: disable-next=invalid-name
     async def on_message(self, target: str, by: str, message: str) -> None:
         """ Called when the bot sees a message
@@ -602,7 +606,8 @@ def main():
             bot.connect(hostname=settings.REPORT_NETWORK,
                         port=settings.REPORT_PORT,
                         tls=settings.REPORT_TLS,
-                        tls_verify=settings.REPORT_VERIFY_TLS),
+                        tls_verify=settings.REPORT_VERIFY_TLS,
+                        password=settings.SERVER_PASSWORD),
             bot.monitor_event_stream(),
             return_exceptions=True)
         logging.info('Running bot')
