@@ -404,7 +404,7 @@ class ReportBot(BotClient):
                                    os.getenv(key, default='[none]'))
 
     async def on_notice(self, target: str, source: str, message: str) -> None:
-        await super.on_notice(target, source, message)
+        # await super.on_notice(target, source, message)
         logging.info(f'[N] {source} -> {target}: {message}')
 
     # pylint: disable-next=invalid-name
