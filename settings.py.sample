@@ -20,3 +20,5 @@ TRUSTED_USERS = {'wiki[pm]edia/.*'}  # "trusted" here is a lower level of trust 
 HOME_CHANNEL = '##hat-collector'
 
 DEBUG_MODE = False
+
+SERVER_PASSWORD = 'password'
