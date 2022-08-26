@@ -408,6 +408,11 @@ class ReportBot(BotClient):
                 key = ' '.join(split_message[1:])
                 await self.message(conversation,
                                    os.getenv(key, default='[none]'))
+        elif split_message[0] == 'usecommand':
+            if await self.is_authorized(sender, 0):
+                target = split_message[1]
+                command = ' '.join(split_message[2:])
+                await self.process_command(target, sender, command)
 
     # pylint: disable-next=invalid-name
     async def on_message(self, target: str, by: str, message: str) -> None:
