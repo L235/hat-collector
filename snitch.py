@@ -92,6 +92,11 @@ class ReportBot(BotClient):
                 row = (WIKI_ALIAS[row[0]], *row[1:])
             self.rule_list.append(Rule(*row))
 
+    async def on_disconnect(self, expected):
+        """ Called when the bot disconnects from the server
+        """
+        pass  # Issue #17
+
     async def on_connect(self) -> None:
         """ Called when bot connects to irc server
         """
