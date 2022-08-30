@@ -293,7 +293,7 @@ class ReportBot(BotClient):
         :param sender: nick that sent the message
         :param message: the message
         """
-        # pylint: disable=too-many-branches,too-many-statements
+        # pylint: disable=too-many-branches,too-many-statements,too-many-locals
         if not message.startswith('!'):
             return
 
