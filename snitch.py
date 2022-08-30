@@ -552,6 +552,14 @@ class ReportBot(BotClient):
         await self.sleep_until_ready()
         await super().join(channel, password)
 
+    async def part(self, channel, message=None):
+        """ Part specified channel.
+        """
+        # pylint: disable-next=fixme
+        # TODO: Implement better rate control (by waiting until pydle does)
+        await self.sleep_until_ready()
+        await super().part(channel, message)
+
     async def on_data_error(self, exception):
         """ Handle errors
         """
