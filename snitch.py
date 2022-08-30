@@ -544,13 +544,13 @@ class ReportBot(BotClient):
         await self.sleep_until_ready()
         await super().message(target, message)
 
-    async def join(self, channel):
+    async def join(self, channel, password=None):
         """ Join specified channel.
         """
         # pylint: disable-next=fixme
         # TODO: Implement better rate control (by waiting until pydle does)
         await self.sleep_until_ready()
-        await super().join(channel)
+        await super().join(channel, password)
 
     async def on_data_error(self, exception):
         """ Handle errors
