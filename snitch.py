@@ -77,10 +77,12 @@ class ReportBot(BotClient):
         logging.info('Syncing report channels')
         query = 'SELECT lower(name) FROM channels'
         self.channel_list = set(f'{row[0]}' for row in self.query(query))
-        # pylint: disable-next=expression-not-assigned
-        [await self.join(channel) for channel in (self.channel_list - self.channels.keys())]
-        # pylint: disable-next=expression-not-assigned
-        [await self.part(channel) for channel in (self.channels.keys() - self.channel_list)]
+        for channel in (self.channel_list - self.channels.keys()):
+            await self.join(channel)
+            await asyncio.sleep(0.5)
+        for channel in (self.channels.keys() - self.channel_list):
+            await self.part(channel)
+            await asyncio.sleep(0.5)
 
     def sync_rules(self) -> None:
         """ Syncs list of rules for the bot
