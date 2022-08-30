@@ -533,8 +533,10 @@ class ReportBot(BotClient):
         # TODO: Implement better rate control (by waiting until pydle does)
         wait_time = self.next_message - time.time_ns()
         if wait_time > 0:
+            self.next_message += 0.5e9  # 0.5 seconds
             await asyncio.sleep(wait_time / 1e9)
-        self.next_message = time.time_ns() + 0.5e9  # 0.5 seconds
+        else:
+            self.next_message = time.time_ns() + 0.5e9  # 0.5 seconds
         await super().message(target, message)
 
     async def on_data_error(self, exception):
