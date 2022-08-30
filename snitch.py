@@ -293,7 +293,7 @@ class ReportBot(BotClient):
         :param sender: nick that sent the message
         :param message: the message
         """
-        # pylint: disable=too-many-branches,too-many-statements
+        # pylint: disable=too-many-branches,too-many-statements,too-many-locals
         if not message.startswith('!'):
             return
 
@@ -526,16 +526,39 @@ class ReportBot(BotClient):
             if not rule.ignore:
                 await self.relay_message(rule.channel, wiki, diff)
 
+    async def sleep_until_ready(self):
+        """ Pauses function flow until the next rate-limiting slot is ready.
+        """
+        wait_time = self.next_message - time.time_ns()
+        if wait_time > 0:
+            self.next_message += 0.5e9  # 0.5 seconds
+            await asyncio.sleep(wait_time / 1e9)
+        else:
+            self.next_message = time.time_ns() + 0.5e9  # 0.5 seconds
+
     async def message(self, target, message):
         """ Message channel or user.
         """
         # pylint: disable-next=fixme
         # TODO: Implement better rate control (by waiting until pydle does)
-        wait_time = self.next_message - time.time_ns()
-        if wait_time > 0:
-            await asyncio.sleep(wait_time / 1e9)
-        self.next_message = time.time_ns() + 0.5e9  # 0.5 seconds
+        await self.sleep_until_ready()
         await super().message(target, message)
+
+    async def join(self, channel, password=None):
+        """ Join specified channel.
+        """
+        # pylint: disable-next=fixme
+        # TODO: Implement better rate control (by waiting until pydle does)
+        await self.sleep_until_ready()
+        await super().join(channel, password)
+
+    async def part(self, channel, message=None):
+        """ Part specified channel.
+        """
+        # pylint: disable-next=fixme
+        # TODO: Implement better rate control (by waiting until pydle does)
+        await self.sleep_until_ready()
+        await super().part(channel, message)
 
     async def on_data_error(self, exception):
         """ Handle errors
