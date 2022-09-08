@@ -386,11 +386,7 @@ class ReportBot(BotClient):
                     await self.sync_channels()
         elif split_message[0] == 'hatcollect':
             if await self.is_authorized(sender, 1) and is_channel_message:
-                if self.has_flood_mode(message_target):
-                    await self.message(message_target, random.choice(HAT_COLLECTING_MESSAGES))
-                else:
-                    await self.hat_collect(message_target, reason='I need voice or op in the channel '
-                                                                  'to use this command.')
+                await self.message(message_target, random.choice(HAT_COLLECTING_MESSAGES))
         elif split_message[0] == 'help':
             await self.message(message_target,
                                '!(relay|drop|ignore|unignore|list|listflood|join|part|quit)')
