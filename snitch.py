@@ -317,13 +317,7 @@ class ReportBot(BotClient):
                 try:
                     result = await self.whois(split_message[1])
                 except AttributeError:
-                    # pylint: disable-next=pointless-string-statement
-                    '''
-                    try:
-                        result = await self.whowas(split_message[1])
-                    except AttributeError:
-                        result = None
-                    '''
+                    pass
                 if not result:
                     await self.message(conversation, 'User not found')
                     return
