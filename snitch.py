@@ -480,7 +480,7 @@ class ReportBot(BotClient):
             if rule.channel in ignore or rule.channel not in self.channel_list:
                 continue
             # Check if rule should be applied
-            pattern = re.compile(fr'^{rule.pattern}$', re.I | re.U)
+            pattern = re.compile(fr'^(?:{rule.pattern})$', re.I | re.U)
             if rule.type == 'all':
                 pass
             elif rule.type == 'summary':
