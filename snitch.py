@@ -324,13 +324,7 @@ class ReportBot(BotClient):
                 try:
                     result = await self.whois(split_message[1])
                 except AttributeError:
-                    # pylint: disable-next=pointless-string-statement
-                    '''
-                    try:
-                        result = await self.whowas(split_message[1])
-                    except AttributeError:
-                        result = None
-                    '''
+                    pass
                 if not result:
                     await self.message(conversation, 'User not found')
                     return
@@ -490,7 +484,7 @@ class ReportBot(BotClient):
             if rule.channel in ignore or rule.channel not in self.channel_list:
                 continue
             # Check if rule should be applied
-            pattern = re.compile(fr'^{rule.pattern}$', re.I | re.U)
+            pattern = re.compile(fr'^(?:{rule.pattern})$', re.I | re.U)
             if rule.type == 'all':
                 pass
             elif rule.type == 'summary':
