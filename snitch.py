@@ -385,7 +385,7 @@ class ReportBot(BotClient):
             await self.message(message_target,
                                '!(relay|drop|ignore|unignore|list|listflood|join|part|quit)')
         elif split_message[0] == 'quit':
-            if await self.is_authorized(sender, 0):
+            if await self.is_authorized(sender, 1):
                 await self.quit()
                 self.eventloop.stop()
         elif split_message[0] == 'listchans':
