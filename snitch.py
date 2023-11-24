@@ -529,7 +529,12 @@ class ReportBot(BotClient):
             # If the rule is not an ignore rule, relay the event
             if not rule.ignore:
                 await self.relay_message(rule.channel, wiki, diff)
+                if settings.DEBUG_MODE:
+                    if random.random() < 0.02:
+                        await self.message(settings.HOME_CHANNEL,
+                                           f"(DEBUG) The following rule triggered (x50): {str(rule)}")
 
+    
     async def sleep_until_ready(self):
         """ Pauses function flow until the next rate-limiting slot is ready.
         """
